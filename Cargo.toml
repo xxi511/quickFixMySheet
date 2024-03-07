@@ -1,0 +1,12 @@
+[package]
+name = "bob"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = "0.11.24"
+tokio = { version = "1", features = ["full"] }
+cookie = "0.18"
+config = "0.14.0"
