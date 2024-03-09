@@ -1,46 +1,52 @@
-use cookie::{self, Cookie};
-use reqwest::{
-    header::{HOST, SET_COOKIE, USER_AGENT},
-    Client,
-};
+use config::Config;
+use std::collections::HashMap;
 use tokio;
+
+mod utils;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (cookie_name, cookie_value) = get_cookie_from_home().await;
+    let settings = read_config();
+
+    let login_cookie = utils::api::get_cookie_from_home(&settings.get("user_agent").unwrap()).await;
+    let mut cookies = utils::api::login(&settings, &login_cookie).await;
+    cookies.push(utils::cookie::make_bob_app_cookie());
+    let user_id =
+        utils::api::get_user_id(&settings, utils::cookie::cookie_header_value(&cookies)).await;
+    let timesheet_id = utils::api::get_timesheet_id(
+        &settings,
+        utils::cookie::cookie_header_value(&cookies),
+        &user_id,
+    )
+    .await;
+    let dates = utils::api::get_date_from_attendance(
+        &settings,
+        utils::cookie::cookie_header_value(&cookies),
+        &timesheet_id,
+    )
+    .await;
+
+    let failed_dates = utils::api::modify_entries(
+        &settings,
+        utils::cookie::cookie_header_value(&cookies),
+        &user_id,
+        &dates,
+    )
+    .await;
+
+    println!("Modified finish");
+    if !failed_dates.is_empty() {
+        println!("The following dates are modified failed {:?}", failed_dates)
+    }
     Ok(())
 }
 
-async fn get_cookie_from_home() -> (String, String) {
-    let uri = "https://app.hibob.com/home";
-    let user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15";
-
-    let client = Client::new();
-    let response = client
-        .get(uri)
-        .header(USER_AGENT, user_agent)
-        .header(HOST, "app.hibob.com")
-        .send()
-        .await
-        .unwrap();
-
-    if response.status() != 200 {
-        panic!("Get hibob home failed, status code {}", response.status());
-    }
-    let set_cookie_header = response
-        .headers()
-        .get(SET_COOKIE)
+fn read_config() -> HashMap<String, String> {
+    let settings = Config::builder()
+        .add_source(config::File::with_name("src/Config"))
+        .build()
         .unwrap()
-        .to_str()
+        .try_deserialize::<HashMap<String, String>>()
         .unwrap();
-
-    let cookie = Cookie::parse(set_cookie_header).unwrap();
-    let (name, value) = cookie.name_value();
-
-    return (name.to_string(), value.to_string());
-}
-
-fn login(account: String, password: String) {
-    let uri = "https://app.hibob.com/api/login";
-    let user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15";
+    return settings;
 }
