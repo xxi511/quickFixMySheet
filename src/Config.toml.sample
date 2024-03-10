@@ -2,6 +2,6 @@ user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.
 timezone_offset = -480
 timesheet_month = "2024-02"
 start_time = "09:30"
-end_time = "18:00"
+work_hours = 8.5
 email = ""
 password = ""
