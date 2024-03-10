@@ -25,6 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &timesheet_id,
     )
     .await;
+    println!("Find working dates: {:?}", dates);
 
     let failed_dates = utils::api::modify_entries(
         &settings,

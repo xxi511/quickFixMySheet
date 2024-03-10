@@ -4,6 +4,7 @@ use cookie::Cookie;
 use reqwest::{header, Client};
 use std::collections::HashMap;
 mod models;
+
 use super::ToNaiveTime;
 use rand::prelude::*;
 
@@ -40,8 +41,9 @@ pub async fn login<'a>(
     let uri = "https://app.hibob.com/api/login";
     let (cookie_name, cookie_value) = cookie.name_value();
     let client = Client::new();
-    let mut json_body = config.to_owned();
-    json_body.remove("user_agent");
+    let mut json_body = HashMap::new();
+    json_body.insert("email", config.get("email").unwrap());
+    json_body.insert("password", config.get("password").unwrap());
     let response = client
         .post(uri)
         .header(header::COOKIE, format!("{cookie_name}={cookie_value}"))
@@ -57,7 +59,6 @@ pub async fn login<'a>(
     }
     let mut cookies = Vec::new();
     for (key, value) in response.headers() {
-        println!("{} = {:?}", key, value);
         if header::SET_COOKIE != key {
             continue;
         }
@@ -118,8 +119,9 @@ pub async fn get_timesheet_id(
     let target_sheet = data
         .employee_sheets
         .iter()
-        .find(|&e| e.cycle_start_date.contains(month))
-        .unwrap();
+        .find(|&e| e.cycle_start_date.contains(month) && !e.locked)
+        .expect("Can't find time sheet for the given month, please check config file again");
+
     return target_sheet.id;
 }
 
@@ -165,6 +167,7 @@ pub async fn modify_entries(
         if !is_success {
             failed_dates.push(date.to_owned());
         }
+        println!("Modify {}, is success: {}", date, is_success)
     }
     return failed_dates;
 }
@@ -178,16 +181,18 @@ async fn modify_entries_for_date(
     let uri = format!("https://app.hibob.com/api/attendance/employees/{user_id}/attendance/entries?forDate={date}");
     let client = Client::new();
 
-    let mut request_body = HashMap::new();
     let times = get_clock_time(config, date);
-    request_body.insert("start", times.0);
-    request_body.insert("end", times.1);
-    request_body.insert("offset", config.get("timezone_offset").unwrap().to_owned());
+    let entry = models::Entry::new(
+        times.0,
+        times.1,
+        config.get("timezone_offset").unwrap().parse::<i32>().unwrap().to_owned(),
+    ).to_array();
 
     let response = client
         .post(uri)
         .header(header::USER_AGENT, config.get("user_agent").unwrap())
         .header(header::COOKIE, cookie_value)
+        .json(&entry)
         .send()
         .await
         .unwrap();
@@ -195,7 +200,8 @@ async fn modify_entries_for_date(
 }
 
 fn get_clock_time(config: &HashMap<String, String>, date: &String) -> (String, String) {
-    let work_hours_in_minutes = config.get("work_hours").unwrap().parse::<i64>().unwrap() * 60;
+    let work_hours = config.get("work_hours").unwrap().parse::<f64>().unwrap();
+    let work_hours_in_minutes = (work_hours * 60.0).round() as i64;
     let mut rng = rand::thread_rng();
 
     let start_delta: i64 = rng.gen_range(-10..10);

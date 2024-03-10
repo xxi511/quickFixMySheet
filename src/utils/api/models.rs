@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct User {
     pub id: String,
@@ -16,6 +17,7 @@ pub struct EmployeeSheets {
 pub struct Sheet {
     pub id: i32,
     pub cycle_start_date: String,
+    pub locked: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -52,4 +54,23 @@ impl AttendanceData {
 #[serde(rename_all = "camelCase")]
 pub struct AttendanceNote {
     pub description: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Entry {
+    pub start: String,
+    pub end: String,
+    pub offset: i32,
+    //[{"id":30668679,"start":"2024-02-29T09:25","end":"2024-02-29T18:00","offset":-480}]
+}
+
+impl Entry {
+    pub fn new(start: String, end: String, offset: i32) -> Self {
+        Self { start: start, end: end, offset: offset }
+    }
+
+    pub fn to_array(self) -> Vec<Entry> {
+        let data = vec![self];
+        return data;
+    }
 }
