@@ -1,6 +1,6 @@
 /target
 
-src/Config.toml
+Config.toml
 
 .DS_Store
 .vscode/
