@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn read_config() -> HashMap<String, String> {
     let settings = Config::builder()
-        .add_source(config::File::with_name("src/Config"))
+        .add_source(config::File::with_name("Config"))
         .build()
         .unwrap()
         .try_deserialize::<HashMap<String, String>>()
