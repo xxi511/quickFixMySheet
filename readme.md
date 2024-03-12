@@ -1,10 +1,11 @@
 # Hi bob timesheet quick fix  
 
 ## Use   
-Download suitable executable based on your platform from release page      
-Update `Config.toml`       
-Put executable and `Config.toml` together       
-Run the executable    
+
+* Download executable from [release page](https://github.com/xxi511/quickFixMySheet/releases)   
+    * for example: Mac M1 downloads `bob-mac-m1`   
+* Download `Config.toml` and update it  
+* Ruc executable   
 
 ### Update `Config.toml`
 * `timesheet_month`: The month you want to update, yes you need to update the value every month    
